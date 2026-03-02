@@ -79,8 +79,8 @@ def analyze_pcap_file(pcap_file):
         for pkt in packets:
             packet_callback(pkt)
 
-	# add animaly check
-	detetct_anomalies(pcap_file)
+       #add animaly check
+        detect_anomalies(pcap_file)
 
     except Exception as e:
         print(f"[ERROR] Failed to read pcap: {e}")
@@ -117,6 +117,70 @@ def detect_anomalies(pcap_file):
 
     except Exception as e:
         print(f"[ERROR] Anomaly detection failed: {e}")
+
+
+import matplotlib.pyplot as plt
+from collections import Counter
+from scapy.all import rdpcap, TCP, UDP
+
+def plot_open_ports(pcap_file=None, nmap_output=None):
+    """
+    Simple bar chart of open ports.
+    - If nmap_output provided: parse from Nmap text
+    - If pcap_file: count unique open ports from TCP/UDP packets (less accurate)
+    """
+    ports = []
+    services = []
+
+    # Option 1: Parse from Nmap output (best if available)
+    if nmap_output:
+        lines = nmap_output.splitlines()
+        for line in lines:
+            if '/tcp' in line or '/udp' in line:
+                if 'open' in line:
+                    parts = line.strip().split()
+                    if len(parts) >= 3:
+                        port_proto = parts[0]  # e.g. 80/tcp
+                        port = port_proto.split('/')[0]
+                        service = parts[2] if len(parts) > 2 else "unknown"
+                        ports.append(port)
+                        services.append(service)
+
+    # Option 2: Fallback to pcap (count unique destination ports)
+    elif pcap_file:
+        try:
+            packets = rdpcap(pcap_file)
+            dst_ports = []
+            for pkt in packets:
+                if TCP in pkt:
+                    dst_ports.append(pkt[TCP].dport)
+                elif UDP in pkt:
+                    dst_ports.append(pkt[UDP].dport)
+            port_counts = Counter(dst_ports)
+            ports = list(port_counts.keys())
+            services = [str(p) for p in ports]  # fallback label
+        except Exception as e:
+            print(f"[Chart] Failed to read pcap: {e}")
+            return
+
+    if not ports:
+        print("[Chart] No open ports detected to plot.")
+        return
+
+    # Create bar chart
+    plt.figure(figsize=(10, 6))
+    plt.bar(services, [1] * len(services), color='skyblue', edgecolor='black')
+    plt.xlabel('Service / Port')
+    plt.ylabel('Open (count)')
+    plt.title('Open Ports Detected')
+    plt.xticks(rotation=45, ha='right')
+    plt.tight_layout()
+
+    # Save chart
+    chart_file = f"open_ports_chart_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    plt.savefig(chart_file)
+    plt.close()
+    print(f"[+] Open ports chart saved to: {chart_file}")
 
 # ---------------- CLI ----------------
 if __name__ == "__main__":

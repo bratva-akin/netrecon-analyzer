@@ -10,7 +10,7 @@ from datetime import datetime
 import threading
 import sys
 from scanner import run_nmap_scan, save_results
-from analyzer import start_live_capture, analyze_pcap_file
+from analyzer import start_live_capture, analyze_pcap_file,plot_open_ports
 
 def sniffer_thread(interface, filter_str, output_pcap, stop_event):
     print("[Sniffer] Background capture started...")
@@ -72,6 +72,8 @@ def combined_workflow(target, scan_type="syn", ports="1-1000", interface="eth0",
         print(f"Packet capture saved to: {pcap_file}")
         print("\nQuick traffic summary:")
         analyze_pcap_file(pcap_file)
+     # Add chart generation
+        plot_open_ports(nmap_output=scan_output, pcap_file=pcap_file)
         print("\nWorkflow finished.\n")
 
 # ---------------- CLI Menu ----------------
