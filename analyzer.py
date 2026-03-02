@@ -42,14 +42,15 @@ def packet_callback(packet):
                 print("   [Binary or non-UTF8 payload]")
         print("-" * 70)
 
-def start_live_capture(interface="eth0", count=0, bpf_filter=None, output_pcap=None):
-    """
-    Start live sniffing.
-    count=0 means unlimited (stop with Ctrl+C)
-    """
+def start_live_capture(interface="eth0", count=0, bpf_filter=None, output_pcap=None, stop_event=None):
     print(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Starting live capture on {interface}")
     print(f"Filter: {bpf_filter or 'None'} | Count: {'unlimited' if count == 0 else count}")
     print("Press Ctrl+C to stop...\n")
+
+    packets = []
+
+    def stop_sniff(pkt):
+        return stop_event.is_set() if stop_event else False
 
     try:
         packets = sniff(
@@ -57,7 +58,8 @@ def start_live_capture(interface="eth0", count=0, bpf_filter=None, output_pcap=N
             prn=packet_callback,
             filter=bpf_filter,
             count=count,
-            store=bool(output_pcap)  # only store if saving to pcap
+            store=bool(output_pcap),
+            stop_filter=stop_sniff
         )
 
         if output_pcap and packets:
@@ -76,8 +78,45 @@ def analyze_pcap_file(pcap_file):
         print(f"Loaded {len(packets)} packets\n")
         for pkt in packets:
             packet_callback(pkt)
+
+	# add animaly check
+	detetct_anomalies(pcap_file)
+
     except Exception as e:
         print(f"[ERROR] Failed to read pcap: {e}")
+
+def detect_anomalies(pcap_file):
+    """Very basic anomaly detection example."""
+    from collections import Counter
+    print("\n=== Basic Anomaly Detection ===")
+    try:
+        packets = rdpcap(pcap_file)
+        src_ips = Counter()
+        dst_ports = Counter()
+        syn_count = 0
+
+        for pkt in packets:
+            if IP in pkt:
+                src_ips[pkt[IP].src] += 1
+            if TCP in pkt and pkt[TCP].flags & 0x02:  # SYN flag
+                syn_count += 1
+                if TCP in pkt:
+                    dst_ports[pkt[TCP].dport] += 1
+
+        print(f"Total SYN packets (possible port scan): {syn_count}")
+        if syn_count > 20:
+            print("[ALERT] High SYN count → possible port scanning activity detected")
+
+        print("\nTop source IPs:")
+        for ip, cnt in src_ips.most_common(5):
+            print(f"  {ip}: {cnt} packets")
+
+        print("\nTop destination ports:")
+        for port, cnt in dst_ports.most_common(5):
+            print(f"  Port {port}: {cnt} packets")
+
+    except Exception as e:
+        print(f"[ERROR] Anomaly detection failed: {e}")
 
 # ---------------- CLI ----------------
 if __name__ == "__main__":
