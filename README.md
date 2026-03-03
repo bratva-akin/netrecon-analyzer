@@ -1,5 +1,8 @@
+
 # NetRecon Analyzer 🛡️
 
+[<img src="https://img.shields.io/badge/Python-3.10+-blue" ></image-card>](https://www.python.org/)
+[<img src="https://img.shields.io/badge/License-MIT-yellow.svg" ></image-card>](https://opensource.org/licenses/MIT)
 **A Python-based ethical network reconnaissance and packet analysis toolkit**
 
 Combines **Nmap** port scanning with **Scapy** packet capture & analysis.
@@ -23,16 +26,25 @@ Use exclusively in isolated environments you own/control:
 - TryHackMe / HackTheBox rooms
 
 I am not responsible for any misuse.
+
 ### Demo Screenshots
+
 ** Main Menu with Instructions **
-<image-card alt="main menu" src="/screenshots/main.png" ></image-card>
+<img src="/screenshots/main.png" alt="main menu" ></image-card>
+
 **Nmap Open Ports Output**  
-<image-card alt="Nmap Open Ports" src="/screenshots/nmap.png" ></image-card>
+<img src="/screenshots/nmap.png" alt="nmap open ports" ></image-card>
+
 **Packet Analysis Showing SYN Packets**  
-<image-card alt="Packet Analysis - SYN" src="screenshots/worflow.png" ></image-card>
+<img src="screenshots/worflow.png" alt="Packet Analysis" ></image-card>
 
 **Anomaly Detection Alert Example**  
-<image-card alt="Anomaly Detection" src="screenshots/workflow.png" ></image-card>
+<img src="screenshots/workflow.png" ></image-card>
+
+**Open Ports Visualization**  
+The tool now generates a simple bar chart of detected open ports/services using Matplotlib.
+
+
 ### Installation
 ```bash
 # Clone repo

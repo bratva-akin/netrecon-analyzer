@@ -42,6 +42,7 @@ def combined_workflow(target, scan_type="syn", ports="1-1000", interface="eth0",
 
     time.sleep(1.5)  # Give sniffer time to start
 
+    scan_output = None
     try:
         scan_output = run_nmap_scan(
             target=target,
@@ -70,11 +71,46 @@ def combined_workflow(target, scan_type="syn", ports="1-1000", interface="eth0",
         print("\n=== Basic Report ===")
         print(f"Scan results: {'Saved to ' + scan_file if save_scan else 'Displayed above'}")
         print(f"Packet capture saved to: {pcap_file}")
+
         print("\nQuick traffic summary:")
         analyze_pcap_file(pcap_file)
-     # Add chart generation
-        plot_open_ports(nmap_output=scan_output, pcap_file=pcap_file)
+
+        # Add chart generation (only if scan succeeded)
+        if scan_output:
+            print("\nGenerating open ports chart...")
+            plot_open_ports(nmap_output=scan_output, pcap_file=pcap_file)
+        else:
+            print("\n[Chart] No scan output available — skipping chart.")
+
         print("\nWorkflow finished.\n")
+
+
+#**Web Vulnrabilty function*
+def run_web_vuln_scan(target, http_ports):
+    if not http_ports:
+        print("[Web Vuln] No HTTP/HTTPS ports open.")
+        return
+
+    print(f"[Web Vuln] Scanning web ports: {http_ports}")
+
+    # Nikto (simple web server scanner)
+    for port in http_ports:
+        url = f"http://{target}:{port}" if port != 443 else f"https://{target}"
+        cmd = ["nikto", "-h", url, "-Format", "txt", "-output", f"nikto_{target}_{port}.txt"]
+        subprocess.run(cmd)
+
+    # Nuclei (more powerful, CVE-focused)
+    port_str = ",".join(str(p) for p in http_ports)
+    cmd = [
+        "nuclei",
+        "-u", target,
+        "-p", port_str,
+        "-t", "http/", "-t", "cves/", "-t", "vulnerabilities/",
+        "-json-export", f"nuclei_web_{target}.json",
+        "-silent"
+    ]
+    subprocess.run(cmd)
+    print("[Web Vuln] Results saved. Check nikto_*.txt and nuclei_web_*.json")
 
 # ---------------- CLI Menu ----------------
 def show_menu():
